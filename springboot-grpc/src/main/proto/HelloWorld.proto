@@ -1,0 +1,16 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package org.gersty.grpc.springboot;
+
+message Person {
+    string firstName = 1;
+    string lastName = 2;
+}
+
+message Greeting {
+    string messsage = 1;
+}
+
+service HelloService {
+    rpc sayHello(Person) returns (Greeting);
+}
