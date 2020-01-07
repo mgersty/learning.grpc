@@ -16,6 +16,7 @@
     <module>standalone-client</module>
     <module>streaming-grpc</module>
     <module>springboot-grpc</module>
+    <module>fileupload-grpc</module>
     
   </modules>
     <properties>

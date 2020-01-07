@@ -8,9 +8,7 @@ import org.gersty.grpc.standalone.StandaloneServiceGrpc.StandaloneServiceImplBas
 public class StandaloneService extends StandaloneServiceImplBase {
 
     @Override
-    public void hello(
-            HelloRequest request, StreamObserver<HelloResponse> responseObserver) {
-
+    public void hello(HelloRequest request, StreamObserver<HelloResponse> responseObserver) {
         String greeting = new StringBuilder()
                 .append("Hello, ")
                 .append(request.getFirstName())
