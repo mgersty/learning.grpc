@@ -7,10 +7,11 @@ message FileRequest {
     bytes data = 2;
 }
 
-message FileRespopnse {
+message FileResponse {
     string status = 1;
 }
 
-service HelloService {
-    rpc uploadFile(FileRequest) returns (FileRespopnse);
+service FileUploadService {
+    rpc uploadFile(FileRequest) returns (FileResponse);
+    rpc streamFile(stream FileRequest) returns (FileResponse);
 }
