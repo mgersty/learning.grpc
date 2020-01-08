@@ -19,7 +19,7 @@ public class FileUploadClient {
                 .usePlaintext()
                 .build();
 
-        byte[] data = IOUtils.toByteArray(new FileInputStream(new File("/home/mpg26/Desktop/hier_flat.nl.2.xml")));
+        byte[] data = IOUtils.toByteArray(new FileInputStream(new File("")));
 
         FileUploadServiceGrpc.FileUploadServiceBlockingStub stub = FileUploadServiceGrpc.newBlockingStub(channel);
         FileUploadServiceGrpc.FileUploadServiceStub asyncStub = FileUploadServiceGrpc.newStub(channel);
@@ -48,8 +48,8 @@ public class FileUploadClient {
 
         StreamObserver<FileRequest> fileRequestObserver = asyncStub.streamFile(responseObserver);
         
-        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(new File("/home/mpg26/Desktop/hier_flat.nl.2.xml")));
-        int bufferSize = 512 * 1024; // 1kb
+        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(new File("")));
+        int bufferSize = 1024; // 1kb
         byte[] buffer = new byte[bufferSize];
         int size = 0;
         while ((size = bInputStream.read(buffer)) > 0) {

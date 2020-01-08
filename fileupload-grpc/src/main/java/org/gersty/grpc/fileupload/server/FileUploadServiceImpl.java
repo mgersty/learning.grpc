@@ -9,7 +9,6 @@ import org.gersty.grpc.fileupload.FileResponse;
 import org.gersty.grpc.fileupload.FileUploadServiceGrpc;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.stereotype.Component;
-import sun.rmi.transport.StreamRemoteCall;
 
 @Component
 @GRpcService
@@ -18,7 +17,7 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
     @Override
     public void uploadFile(FileRequest request, StreamObserver<FileResponse> response){
         ByteString stuff = request.getData();
-        System.out.println("*******************************"+new String(stuff.toByteArray()));
+        System.out.println("*************UNIARY******************"+new String(stuff.toByteArray()));
 
         response.onNext(FileResponse.newBuilder().setStatus("success").build());
         response.onCompleted();
@@ -30,7 +29,7 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
             @Override
             public void onNext(FileRequest fileRequest) {
                 ByteString stuff = fileRequest.getData();
-                System.out.println("*******************************"+new String(stuff.toByteArray()));
+                System.out.println("*************STREAM******************"+new String(stuff.toByteArray()));
             }
 
             @Override
