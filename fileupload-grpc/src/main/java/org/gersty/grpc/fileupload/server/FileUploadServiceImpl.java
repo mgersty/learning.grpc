@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServiceImplBase {
 
     @Override
-    public void uploadFile(FileRequest request, StreamObserver<FileResponse> response){
+    public void unaryFileUpload(FileRequest request, StreamObserver<FileResponse> response){
         ByteString stuff = request.getData();
         System.out.println("*************UNIARY******************"+new String(stuff.toByteArray()));
 

@@ -12,6 +12,7 @@ message FileResponse {
 }
 
 service FileUploadService {
-    rpc uploadFile(FileRequest) returns (FileResponse);
-    rpc streamFile(stream FileRequest) returns (FileResponse);
+    rpc unaryFileUpload (FileRequest) returns (FileResponse);
+    rpc streamFile (stream FileRequest) returns (FileResponse);
+    rpc bidirectionalStreamFile (stream FileRequest) returns (stream FileResponse);
 }
