@@ -5,10 +5,12 @@ package org.gersty.grpc.fileupload;
 message FileRequest {
     string name = 1;
     bytes data = 2;
+    int32 size = 3;
 }
 
 message FileResponse {
     string status = 1;
+    string message = 2;
 }
 
 service FileUploadService {

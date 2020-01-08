@@ -9,6 +9,8 @@ import org.gersty.grpc.fileupload.FileResponse;
 import org.gersty.grpc.fileupload.FileUploadServiceGrpc;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.stereotype.Component;
+import java.util.Random;
+
 
 @Component
 @GRpcService
@@ -45,6 +47,31 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
         };
     }
 
+    @Override
+    public StreamObserver<FileRequest> bidirectionalStreamFile(StreamObserver<FileResponse> responseStreamObserver){
+
+
+
+        return new StreamObserver<FileRequest>() {
+            @Override
+            public void onNext(FileRequest fileRequest) {
+                String message = ((new Random().nextInt(10) & 2) == 0) ? "message received":"message not received :(";
+                FileResponse response = FileResponse.newBuilder().setMessage(message).build();
+                responseStreamObserver.onNext(response);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onCompleted() {
+                FileResponse response = FileResponse.newBuilder().setStatus("file upload complete").build();
+                responseStreamObserver.onNext(response);
+            }
+        };
+    }
 
 }
 

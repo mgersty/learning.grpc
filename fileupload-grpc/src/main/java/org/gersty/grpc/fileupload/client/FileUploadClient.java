@@ -32,43 +32,78 @@ public class FileUploadClient {
 
         byte[] data = IOUtils.toByteArray(new FileInputStream(testFile));
 
-        FileUploadServiceGrpc.FileUploadServiceBlockingStub stub = FileUploadServiceGrpc.newBlockingStub(channel);
-        FileUploadServiceGrpc.FileUploadServiceStub asyncStub = FileUploadServiceGrpc.newStub(channel);
+//        FileUploadServiceGrpc.FileUploadServiceBlockingStub unaryFileUploadStub = FileUploadServiceGrpc.newBlockingStub(channel);
+//        FileUploadServiceGrpc.FileUploadServiceStub streamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
+        FileUploadServiceGrpc.FileUploadServiceStub bidirectionalStreamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
 
-        
-        FileResponse response = stub.unaryFileUpload(FileRequest.newBuilder().setData(ByteString.copyFrom(data)).build());
-        System.out.println(response.getStatus());
+//        System.out.println("************************************************UNARY FILE UPLOAD************************************************");
+//
+//        FileResponse response = unaryFileUploadStub.unaryFileUpload(FileRequest.newBuilder().setData(ByteString.copyFrom(data)).build());
+//        System.out.println(response.getStatus());
+//
+//        System.out.println("************************************************STREAM FILE UPLOAD************************************************");
+//        StreamObserver<FileResponse> responseObserver = new StreamObserver<FileResponse>() {
+//
+//            @Override
+//            public void onNext(FileResponse value) {
+//                System.out.println("Client response onNext");
+//            }
+//
+//            @Override
+//            public void onError(Throwable t) {
+//                System.out.println("Client response onError");
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                System.out.println("Client response onCompleted");
+//            }
+//        };
+//
+//        StreamObserver<FileRequest> fileRequestObserver = streamFileUploadStub.streamFile(responseObserver);
+//
+        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(testFile));
+        int bufferSize =  1 * 1024; // 1kb
+        byte[] buffer = new byte[bufferSize];
+        int size = 0;
+//        System.out.println("******** BEGIN BUFFER READ ********");
+//        while ((size = bInputStream.read(buffer)) > 0) {
+//          //  Thread.sleep(10);
+//            ByteString byteString = ByteString.copyFrom(buffer, 0, size);
+//            FileRequest req = FileRequest.newBuilder().setData(byteString).build();
+//            fileRequestObserver.onNext(req);
+//        }
 
-        StreamObserver<FileResponse> responseObserver = new StreamObserver<FileResponse>() {
+        System.out.println("************************************************Bi Di STREAM FILE UPLOAD************************************************");
 
+        StreamObserver<FileRequest> fileUploadRequest = bidirectionalStreamFileUploadStub.bidirectionalStreamFile(new StreamObserver<FileResponse>() {
             @Override
-            public void onNext(FileResponse value) {
-                System.out.println("Client response onNext");
+            public void onNext(FileResponse fileResponse) {
+
+              System.out.println("*************BI DI STREAM Messages******************"+fileResponse.getMessage());
             }
 
             @Override
-            public void onError(Throwable t) {
-                System.out.println("Client response onError");
+            public void onError(Throwable throwable) {
+
             }
 
             @Override
             public void onCompleted() {
-                System.out.println("Client response onCompleted");
+                System.out.println("File upload attempt complete");
             }
-        };
+        });
 
-        StreamObserver<FileRequest> fileRequestObserver = asyncStub.streamFile(responseObserver);
-        
-        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(testFile));
-        int bufferSize =  512 * 1024; // 1kb
-        byte[] buffer = new byte[bufferSize];
-        int size = 0;
-        System.out.println("******** BEGIN BUFFER READ ********");
-        while ((size = bInputStream.read(buffer)) > 0) {
-          //  Thread.sleep(10);
+
+
+        BufferedInputStream fileInputStream = new BufferedInputStream(new FileInputStream(testFile));
+
+        System.out.println("******** BEGIN Bidi BUFFER READ ********");
+        while ((size = fileInputStream.read(buffer)) > 0) {
+              Thread.sleep(10);
             ByteString byteString = ByteString.copyFrom(buffer, 0, size);
             FileRequest req = FileRequest.newBuilder().setData(byteString).build();
-            fileRequestObserver.onNext(req);
+            fileUploadRequest.onNext(req);
         }
         
         channel.shutdown();
