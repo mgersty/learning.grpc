@@ -14,12 +14,14 @@ import java.io.*;
 
 public class FileUploadClient {
 
-    public static void main(String[] args) throws IOException {
+    public static final String FILE_PATH = "";
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 6565)
                 .usePlaintext()
                 .build();
 
-        byte[] data = IOUtils.toByteArray(new FileInputStream(new File("")));
+        byte[] data = IOUtils.toByteArray(new FileInputStream(new File(FILE_PATH)));
 
         FileUploadServiceGrpc.FileUploadServiceBlockingStub stub = FileUploadServiceGrpc.newBlockingStub(channel);
         FileUploadServiceGrpc.FileUploadServiceStub asyncStub = FileUploadServiceGrpc.newStub(channel);
@@ -48,11 +50,13 @@ public class FileUploadClient {
 
         StreamObserver<FileRequest> fileRequestObserver = asyncStub.streamFile(responseObserver);
         
-        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(new File("")));
-        int bufferSize = 1024; // 1kb
+        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(new File(FILE_PATH)));
+        int bufferSize =  512 * 1024; // 1kb
         byte[] buffer = new byte[bufferSize];
         int size = 0;
+        System.out.println("******** BEGIN BUFFER READ ********");
         while ((size = bInputStream.read(buffer)) > 0) {
+            Thread.sleep(10);
             ByteString byteString = ByteString.copyFrom(buffer, 0, size);
             FileRequest req = FileRequest.newBuilder().setData(byteString).build();
             fileRequestObserver.onNext(req);
