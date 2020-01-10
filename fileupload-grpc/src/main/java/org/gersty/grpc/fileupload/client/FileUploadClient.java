@@ -12,6 +12,8 @@ import org.gersty.grpc.fileupload.server.FileUploadServiceImpl;
 import org.springframework.util.ResourceUtils;
 
 import java.io.*;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class FileUploadClient {
@@ -25,7 +27,6 @@ public class FileUploadClient {
 
     public FileUploadClient() throws FileNotFoundException {
         channel = ManagedChannelBuilder.forAddress("localhost", 6565)
-                .maxInboundMessageSize(50 * 50 * 1024)
                 .usePlaintext()
                 .build();
         testFile = ResourceUtils.getFile("classpath:test.txt");
@@ -44,11 +45,14 @@ public class FileUploadClient {
     }
 
     public void runStreamFileUpload() throws IOException, InterruptedException {
+        final CountDownLatch finishLatch = new CountDownLatch(1);
+
         FileUploadServiceGrpc.FileUploadServiceStub streamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
 
-        StreamObserver<FileRequest> fileRequestObserver = streamFileUploadStub.streamFile(new StreamObserver<FileResponse>() {
+        StreamObserver<FileResponse> fileResponseStreamObserver = new StreamObserver<FileResponse>() {
             @Override
             public void onNext(FileResponse value) {
+                System.out.println(value.getStatus());
                 System.out.println("Client response onNext");
             }
 
@@ -61,12 +65,35 @@ public class FileUploadClient {
 
             @Override
             public void onCompleted() {
-                System.out.println("Client response onCompleted");
-            }
-        });
 
-        uploadFile(fileRequestObserver);
+                System.out.println("Client response onCompleted");
+                finishLatch.countDown();
+            }
+        };
+
+        StreamObserver<FileRequest> fileRequestObserver = streamFileUploadStub.streamFile(fileResponseStreamObserver);
+        int size;
+        while ((size = bInputStream.read(buffer)) > 0) {
+
+            ByteString byteString = ByteString.copyFrom(buffer, 0, size);
+            FileRequest req = FileRequest.newBuilder().setData(byteString).build();
+            fileRequestObserver.onNext(req);
+            Thread.sleep(1000);
+            if (finishLatch.getCount() == 0) {
+                System.out.println("HIT FINISH LATCH ERROR");
+                // RPC completed or errored before we finished sending.
+                // Sending further requests won't error, but they will just be thrown away.
+                return;
+            }
+
+        }
+
         fileRequestObserver.onCompleted();
+
+        if (!finishLatch.await(1, TimeUnit.MINUTES)) {
+            System.out.println("recordRoute can not finish within 1 minutes");
+        }
+
     }
 
     public void runBidirectionalStreamFileUpload() throws IOException, InterruptedException {
@@ -97,21 +124,16 @@ public class FileUploadClient {
 
 
     private void uploadFile(StreamObserver<FileRequest> fileRequestObserver) throws IOException, InterruptedException {
-        int size;
-        while ((size = bInputStream.read(buffer)) > 0) {
-          //  Thread.sleep(500); //temp fix
-            ByteString byteString = ByteString.copyFrom(buffer, 0, size);
-            FileRequest req = FileRequest.newBuilder().setData(byteString).build();
-            fileRequestObserver.onNext(req);
-        }
+
     }
+
     public static void main(String[] args) throws IOException, InterruptedException {
 
         FileUploadClient client =  new FileUploadClient();
 
         //client.runUnaryFileUpload();
         client.runStreamFileUpload();
-        Thread.sleep(500);
+    //    Thread.sleep(500);
         //client.runBidirectionalStreamFileUpload();
         client.getChannel().shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }

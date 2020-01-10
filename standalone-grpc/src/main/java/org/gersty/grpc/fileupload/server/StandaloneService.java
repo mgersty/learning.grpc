@@ -1,4 +1,4 @@
-package org.gersty.grpc.standalone.server;
+package org.gersty.grpc.fileupload.server;
 
 import io.grpc.stub.StreamObserver;
 import org.gersty.grpc.standalone.HelloRequest;

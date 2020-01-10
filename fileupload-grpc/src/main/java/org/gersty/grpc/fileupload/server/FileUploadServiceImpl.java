@@ -32,7 +32,7 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
             @Override
             public void onNext(FileRequest fileRequest) {
                 ByteString stuff = fileRequest.getData();
-                System.out.println(new String(stuff.toByteArray()));
+                System.out.println("-- STREAM FROM CLIENT -->"+new String(stuff.toByteArray()));
                 responseObserver.onNext(FileResponse.newBuilder().setStatus("success").build());
             }
 
@@ -44,7 +44,8 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
 
             @Override
             public void onCompleted() {
-                responseObserver.onCompleted();
+                responseObserver.onNext(FileResponse.newBuilder().setStatus("Final Success").build());
+                //responseObserver.onCompleted();
             }
         };
     }

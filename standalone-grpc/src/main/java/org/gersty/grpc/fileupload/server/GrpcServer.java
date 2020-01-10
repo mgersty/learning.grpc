@@ -1,4 +1,4 @@
-package org.gersty.grpc.standalone.server;
+package org.gersty.grpc.fileupload.server;
 
 import java.io.IOException;
 

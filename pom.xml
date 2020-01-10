@@ -17,7 +17,7 @@
     <module>streaming-grpc</module>
     <module>springboot-grpc</module>
     <module>fileupload-grpc</module>
-    
+    <module>fileupload</module>    
   </modules>
     <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
