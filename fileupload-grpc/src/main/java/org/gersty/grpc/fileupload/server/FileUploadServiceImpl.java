@@ -18,8 +18,8 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
 
     @Override
     public void unaryFileUpload(FileRequest request, StreamObserver<FileResponse> response){
-        ByteString stuff = request.getData();
-        System.out.println("*************UNIARY******************"+new String(stuff.toByteArray()));
+        ByteString fileContents = request.getData();
+        System.out.println(new String(fileContents.toByteArray()));
 
         response.onNext(FileResponse.newBuilder().setStatus("success").build());
         response.onCompleted();
@@ -28,20 +28,22 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
     @Override
     public StreamObserver<FileRequest> streamFile(StreamObserver<FileResponse> responseObserver){
         return new StreamObserver<FileRequest>() {
+
             @Override
             public void onNext(FileRequest fileRequest) {
                 ByteString stuff = fileRequest.getData();
-                System.out.println("*************STREAM******************"+new String(stuff.toByteArray()));
+                System.out.println(new String(stuff.toByteArray()));
+                responseObserver.onNext(FileResponse.newBuilder().setStatus("success").build());
             }
 
             @Override
             public void onError(Throwable throwable) {
-
+                System.out.println(throwable.getMessage());
+                throwable.printStackTrace();
             }
 
             @Override
             public void onCompleted() {
-                responseObserver.onNext(FileResponse.newBuilder().setStatus("success").build());
                 responseObserver.onCompleted();
             }
         };
@@ -49,12 +51,10 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
 
     @Override
     public StreamObserver<FileRequest> bidirectionalStreamFile(StreamObserver<FileResponse> responseStreamObserver){
-
-
-
         return new StreamObserver<FileRequest>() {
             @Override
             public void onNext(FileRequest fileRequest) {
+                // Articially simulate a fail/success response to send back, as a way to justify a bidirectional stream use case for learning purposes
                 String message = ((new Random().nextInt(10) & 2) == 0) ? "message received":"message not received :(";
                 FileResponse response = FileResponse.newBuilder().setMessage(message).build();
                 responseStreamObserver.onNext(response);
@@ -62,13 +62,14 @@ public class FileUploadServiceImpl extends FileUploadServiceGrpc.FileUploadServi
 
             @Override
             public void onError(Throwable throwable) {
-
+                System.out.println(throwable.getMessage());
+                throwable.printStackTrace();
             }
 
             @Override
             public void onCompleted() {
-                FileResponse response = FileResponse.newBuilder().setStatus("file upload complete").build();
-                responseStreamObserver.onNext(response);
+                responseStreamObserver.onNext(FileResponse.newBuilder().setStatus("all good!!!!").build());
+               responseStreamObserver.onCompleted();
             }
         };
     }

@@ -12,105 +12,108 @@ import org.gersty.grpc.fileupload.server.FileUploadServiceImpl;
 import org.springframework.util.ResourceUtils;
 
 import java.io.*;
+import java.util.concurrent.TimeUnit;
 
 public class FileUploadClient {
+    private final ManagedChannel channel;
+    private final File testFile;
+    private final BufferedInputStream bInputStream;
+    private final int bufferSize; // 1kb
+    private final byte[] buffer;
 
-    private static File testFile;
 
-    static {
-        try {
-            testFile = ResourceUtils.getFile("classpath:test.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 6565)
+    public FileUploadClient() throws FileNotFoundException {
+        channel = ManagedChannelBuilder.forAddress("localhost", 6565)
+                .maxInboundMessageSize(50 * 50 * 1024)
                 .usePlaintext()
                 .build();
+        testFile = ResourceUtils.getFile("classpath:test.txt");
+        bInputStream = new BufferedInputStream(new FileInputStream(testFile));
+        bufferSize = 1*1024;
+        buffer = new byte[bufferSize];
+    }
 
+    public ManagedChannel getChannel(){ return this.channel; }
+
+    public void runUnaryFileUpload() throws IOException {
+        FileUploadServiceGrpc.FileUploadServiceBlockingStub unaryFileUploadStub = FileUploadServiceGrpc.newBlockingStub(channel);
         byte[] data = IOUtils.toByteArray(new FileInputStream(testFile));
+        FileResponse response = unaryFileUploadStub.unaryFileUpload(FileRequest.newBuilder().setData(ByteString.copyFrom(data)).build());
+        System.out.println(response.getStatus());
+    }
 
-//        FileUploadServiceGrpc.FileUploadServiceBlockingStub unaryFileUploadStub = FileUploadServiceGrpc.newBlockingStub(channel);
-//        FileUploadServiceGrpc.FileUploadServiceStub streamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
+    public void runStreamFileUpload() throws IOException, InterruptedException {
+        FileUploadServiceGrpc.FileUploadServiceStub streamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
+
+        StreamObserver<FileRequest> fileRequestObserver = streamFileUploadStub.streamFile(new StreamObserver<FileResponse>() {
+            @Override
+            public void onNext(FileResponse value) {
+                System.out.println("Client response onNext");
+            }
+
+            @Override
+            public void onError(Throwable t) {
+
+                System.out.println("Client response onError");
+                t.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("Client response onCompleted");
+            }
+        });
+
+        uploadFile(fileRequestObserver);
+        fileRequestObserver.onCompleted();
+    }
+
+    public void runBidirectionalStreamFileUpload() throws IOException, InterruptedException {
         FileUploadServiceGrpc.FileUploadServiceStub bidirectionalStreamFileUploadStub = FileUploadServiceGrpc.newStub(channel);
 
-//        System.out.println("************************************************UNARY FILE UPLOAD************************************************");
-//
-//        FileResponse response = unaryFileUploadStub.unaryFileUpload(FileRequest.newBuilder().setData(ByteString.copyFrom(data)).build());
-//        System.out.println(response.getStatus());
-//
-//        System.out.println("************************************************STREAM FILE UPLOAD************************************************");
-//        StreamObserver<FileResponse> responseObserver = new StreamObserver<FileResponse>() {
-//
-//            @Override
-//            public void onNext(FileResponse value) {
-//                System.out.println("Client response onNext");
-//            }
-//
-//            @Override
-//            public void onError(Throwable t) {
-//                System.out.println("Client response onError");
-//            }
-//
-//            @Override
-//            public void onCompleted() {
-//                System.out.println("Client response onCompleted");
-//            }
-//        };
-//
-//        StreamObserver<FileRequest> fileRequestObserver = streamFileUploadStub.streamFile(responseObserver);
-//
-        BufferedInputStream bInputStream = new BufferedInputStream(new FileInputStream(testFile));
-        int bufferSize =  1 * 1024; // 1kb
-        byte[] buffer = new byte[bufferSize];
-        int size = 0;
-//        System.out.println("******** BEGIN BUFFER READ ********");
-//        while ((size = bInputStream.read(buffer)) > 0) {
-//          //  Thread.sleep(10);
-//            ByteString byteString = ByteString.copyFrom(buffer, 0, size);
-//            FileRequest req = FileRequest.newBuilder().setData(byteString).build();
-//            fileRequestObserver.onNext(req);
-//        }
-
-        System.out.println("************************************************Bi Di STREAM FILE UPLOAD************************************************");
-
-        StreamObserver<FileRequest> fileUploadRequest = bidirectionalStreamFileUploadStub.bidirectionalStreamFile(new StreamObserver<FileResponse>() {
+        StreamObserver<FileRequest> fileRequestObserver = bidirectionalStreamFileUploadStub.bidirectionalStreamFile(new StreamObserver<FileResponse>() {
             @Override
             public void onNext(FileResponse fileResponse) {
-
-              System.out.println("*************BI DI STREAM Messages******************"+fileResponse.getMessage());
+                System.out.println("*************MESSAGE FROM SERVER******************"+fileResponse.getMessage());
             }
 
             @Override
             public void onError(Throwable throwable) {
+                System.out.println(throwable.getMessage());
+                throwable.printStackTrace();
 
             }
 
             @Override
             public void onCompleted() {
-                System.out.println("File upload attempt complete");
+
             }
         });
 
+        uploadFile(fileRequestObserver);
+
+    }
 
 
-        BufferedInputStream fileInputStream = new BufferedInputStream(new FileInputStream(testFile));
-
-        System.out.println("******** BEGIN Bidi BUFFER READ ********");
-        while ((size = fileInputStream.read(buffer)) > 0) {
-              Thread.sleep(10);
+    private void uploadFile(StreamObserver<FileRequest> fileRequestObserver) throws IOException, InterruptedException {
+        int size;
+        while ((size = bInputStream.read(buffer)) > 0) {
+          //  Thread.sleep(500); //temp fix
             ByteString byteString = ByteString.copyFrom(buffer, 0, size);
             FileRequest req = FileRequest.newBuilder().setData(byteString).build();
-            fileUploadRequest.onNext(req);
+            fileRequestObserver.onNext(req);
         }
-        
-        channel.shutdown();
+    }
+    public static void main(String[] args) throws IOException, InterruptedException {
 
+        FileUploadClient client =  new FileUploadClient();
 
-
-
+        //client.runUnaryFileUpload();
+        client.runStreamFileUpload();
+        Thread.sleep(500);
+        //client.runBidirectionalStreamFileUpload();
+        client.getChannel().shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
 
