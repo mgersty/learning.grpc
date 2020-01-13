@@ -2,17 +2,20 @@ syntax = "proto3";
 option java_multiple_files = true;
 package org.gersty.grpc.standalone.fileupload;
 
-message FileRequest {
-    string name = 1;
+message Request {
+    string value = 1;
     bytes data = 2;
     int32 size = 3;
 }
 
-message FileResponse {
+message Response {
     string status = 1;
     string message = 2;
 }
 
 service FileUploadService {
-    rpc upload(stream FileRequest) returns (FileResponse);
+    rpc single(Request) returns (Response);
+    rpc upload( stream Request) returns (Response);
+    rpc download(Request) returns (stream Response);
+    rpc bidirectional(stream Request) returns (stream Response);
 }
